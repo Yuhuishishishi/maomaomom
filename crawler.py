@@ -8,7 +8,7 @@ This is a temporary script file.
 import requests
 from bs4 import BeautifulSoup
 import re
-from recipe import Recipe
+import recipe
 import os
 
 # open the base page
@@ -60,38 +60,14 @@ for link in links:
 #%% redirect to detailed recipe
 
 
-href = hrefs[1]
+href = hrefs[6]
 
-res = requests.get(href.strip())
-html = res.text
-
-#%% parse the page
-page = BeautifulSoup(html)
-div_content = page.find('div', class_='entry-content')    
-
-# title
-title_tag = div_content.find('span', style='color: #008000;')
-title = title_tag.string
-
-# the instruction list
-pattern = re.compile('\d[：|、].*[；|。]', re.U)
-matches = pattern.findall(str(div_content))
-
-# the images
-img_recipe_list = []
-imgs = div_content.find_all('img')
-for img in imgs:
-    src = img['src']
-    if re.compile('http://maomaomom').search(src):
-        img_recipe_list.append(src)
-    
-
-r = Recipe(title, matches, img_recipe_list)
+r = recipe.get_recipe_from_web(href)
     
 os.mkdir('./'+r.title)
 f = open('./'+r.title + '/' + 'instructions.txt', 'w')
 for step in r.instructions:
-    f.write(step)
+    f.write(step.encode('utf-8'))
     f.write('\n')
     
 f.close()
