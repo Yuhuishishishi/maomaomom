@@ -8,6 +8,8 @@ This is a temporary script file.
 import requests
 from bs4 import BeautifulSoup
 import re
+from recipe import Recipe
+import os
 
 # open the base page
 
@@ -25,13 +27,15 @@ print page.prettify()
 container = page.find('div', class_='entry-content')
 
 def in_maomaoma_web(href):
-    return href.startswith(' http://maomaomom.com')
-        or href.startswith('http://maomaomom.com')
+    return href.startswith(' http://maomaomom.com') or href.startswith('http://maomaomom.com')
     
 def has_img_child(tag):
     if len(tag.contents) == 0:
         return False
-    child = tag.contents[0].name
+    try:
+        child = tag.contents[0].name
+    except AttributeError:
+        return False
     if child == None:
         return False
     if re.compile('img').search(child):
@@ -56,7 +60,7 @@ for link in links:
 #%% redirect to detailed recipe
 
 
-href = hrefs[0]
+href = hrefs[1]
 
 res = requests.get(href.strip())
 html = res.text
@@ -65,7 +69,31 @@ html = res.text
 page = BeautifulSoup(html)
 div_content = page.find('div', class_='entry-content')    
 
-stepre = re.compile('^\d.*')
-pp = stepre.search(str(div_content))
+# title
+title_tag = div_content.find('span', style='color: #008000;')
+title = title_tag.string
+
+# the instruction list
+pattern = re.compile('\d[：|、].*[；|。]', re.U)
+matches = pattern.findall(str(div_content))
+
+# the images
+img_recipe_list = []
+imgs = div_content.find_all('img')
+for img in imgs:
+    src = img['src']
+    if re.compile('http://maomaomom').search(src):
+        img_recipe_list.append(src)
+    
+
+r = Recipe(title, matches, img_recipe_list)
+    
+os.mkdir('./'+r.title)
+f = open('./'+r.title + '/' + 'instructions.txt', 'w')
+for step in r.instructions:
+    f.write(step)
+    f.write('\n')
+    
+f.close()
 
 
